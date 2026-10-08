@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { adapt, allocate, generate, swapStage, talkStats, validate } from './engine'
 import { byId } from './library'
 import { readOldPlan } from './parse'
-import { contextFrom, SAMPLE_PLAN } from './sample'
+import { contextFrom, SAMPLE_PLAN, SAMPLES } from './sample'
 
 describe('reading an old plan', () => {
   const r = readOldPlan(SAMPLE_PLAN)
@@ -26,6 +26,18 @@ describe('reading an old plan', () => {
     expect(readOldPlan('เรื่อง ก  เวลา 2 ชั่วโมง').minutes).toBe(120)
     expect(readOldPlan('เรื่อง ก  เวลา 50 นาที').minutes).toBe(50)
     expect(readOldPlan('ไม่มีอะไรเลย').minutes).toBe(60)
+  })
+})
+
+describe('ม.6 samples', () => {
+  it('reads upper-secondary indicator codes and passes the validator for every sample', () => {
+    for (const x of SAMPLES) {
+      const c = contextFrom(x.text)
+      expect(c.indicators.length, x.id).toBe(2)
+      expect(c.topic, x.id).not.toBe('')
+      expect(validate(generate(c)).filter((i) => i.level === 'error'), x.id).toEqual([])
+    }
+    expect(contextFrom(SAMPLES[1].text)).toMatchObject({ grade: 'ม.6', minutes: 60, indicators: [{ code: 'ค 3.1 ม.4-6/1' }, { code: 'ค 3.1 ม.4-6/2' }] })
   })
 })
 

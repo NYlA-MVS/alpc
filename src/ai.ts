@@ -133,14 +133,25 @@ export function buildPrompt(ctx: Context, oldPlan: string, includeSchema: boolea
 
 type RawPlan = { stages?: unknown; objectives?: Plan['objectives']; worksheet?: unknown; rubric?: unknown }
 
+// Finds the plan object in a reply: plain JSON, JSON in a code fence or with text around it, or the plan
+// nested one level down (e.g. {"plan": {...}}).
+function readJson(text: string): RawPlan {
+  const clean = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+  let out: unknown
+  try { out = JSON.parse(clean) } catch {
+    const a = clean.indexOf('{'), b = clean.lastIndexOf('}')
+    try { out = a >= 0 && b > a ? JSON.parse(clean.slice(a, b + 1)) : undefined } catch { /* handled below */ }
+  }
+  if (!out || typeof out !== 'object') throw new Error('AI ส่งแผนกลับมาในรูปแบบที่อ่านไม่ได้')
+  const o = out as Record<string, unknown>
+  if (Array.isArray(o.stages)) return o as RawPlan
+  const inner = Object.values(o).find((v) => v && typeof v === 'object' && Array.isArray((v as RawPlan).stages))
+  return (inner ?? o) as RawPlan
+}
+
 // Turns any provider's JSON into a Plan, tolerating the small slips non-strict providers make.
 export function toPlan(ctx: Context, text: string): Plan {
-  let out: RawPlan
-  try {
-    out = JSON.parse(text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, ''))
-  } catch {
-    throw new Error('AI ส่งแผนกลับมาในรูปแบบที่อ่านไม่ได้')
-  }
+  const out = readJson(text)
   if (!Array.isArray(out.stages) || !out.stages.length) throw new Error('AI ไม่ได้ส่งขั้นกิจกรรมกลับมา')
   const list = (v: unknown) => (Array.isArray(v) ? v.map(String) : typeof v === 'string' && v ? [v] : [])
   const stages: Stage[] = (out.stages as Record<string, unknown>[]).map((x) => ({

@@ -1,8 +1,22 @@
 import lecturePlan from '../samples/lecture-plan.txt?raw'
+import m6English from '../samples/m6-english-opinion.txt?raw'
+import m6Math from '../samples/m6-math-statistics.txt?raw'
+import m6Social from '../samples/m6-social-economics.txt?raw'
+import m6Thai from '../samples/m6-thai-analysis.txt?raw'
 import { readOldPlan } from './parse'
 import type { Context, Indicator } from './types'
 
 export const SAMPLE_PLAN = lecturePlan
+
+// Synthetic lecture plans to try the converter on. Indicator codes follow the curriculum's format but are not checked.
+export const SAMPLES: { id: string; label: string; text: string }[] = [
+  { id: 'p6-science', label: 'ป.6 วิทยาศาสตร์ · ระบบสุริยะ', text: lecturePlan },
+  { id: 'm6-math', label: 'ม.6 คณิตศาสตร์ · การวัดการกระจาย', text: m6Math },
+  { id: 'm6-thai', label: 'ม.6 ภาษาไทย · วิเคราะห์บทความ', text: m6Thai },
+  { id: 'm6-social', label: 'ม.6 สังคมศึกษา · นโยบายการเงินการคลัง', text: m6Social },
+  { id: 'm6-english', label: 'ม.6 ภาษาอังกฤษ · Expressing Opinions', text: m6English },
+]
+export const isSample = (text: string) => SAMPLES.some((s) => s.text === text)
 
 // A typical class: 40 students, no projector, worksheets can be printed.
 export function contextFrom(text: string, base: Partial<Context> = {}): Context {

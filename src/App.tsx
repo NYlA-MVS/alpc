@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { aiName, aiReady, loadAi, writeWithAi, type AiSettings } from './ai'
 import { generate } from './engine'
 import { currentPlan, useAppState, type Step } from './store'
 import { AfterStep } from './components/AfterStep'
 import { AiPanel } from './components/AiPanel'
+import { AiProgress } from './components/AiProgress'
 import { InputStep } from './components/InputStep'
 import { PlanStep } from './components/PlanStep'
 import { Mark, T } from './components/ui'
@@ -24,22 +25,33 @@ export default function App() {
   const [error, setError] = useState('')
   const go = (step: Step) => { update((s) => ({ ...s, step })); window.scrollTo({ top: 0 }) }
 
+  // Each AI request gets a number; a reply that arrives after a newer request or a cancel is ignored.
+  const run = useRef(0)
   const convert = async (mode: 'library' | 'ai') => {
     setError('')
     if (mode === 'library') {
+      run.current++
+      setBusy(false)
       update((s) => ({ ...s, history: [generate(s.ctx, 0)], current: 0, tried: [], variant: 0, step: 'plan' }))
       window.scrollTo({ top: 0 })
       return
     }
+    const id = ++run.current
     setBusy(true)
     try {
       const plan = await writeWithAi(state.ctx, state.oldPlan, ai)
+      if (id !== run.current) return
       update((s) => ({ ...s, history: [plan], current: 0, tried: [], variant: 0, step: 'plan' }))
       window.scrollTo({ top: 0 })
     } catch (e) {
+      if (id !== run.current) return
+      update((s) => ({ ...s, step: 'input' }))
       setError(`${(e as Error).message} ลองอีกครั้ง เปลี่ยนผู้ให้บริการที่ปุ่ม “AI” หรือใช้ “แปลงเป็นแผน Active Learning” จากคลังกิจกรรมแทน`)
-    } finally { setBusy(false) }
+    } finally {
+      if (id === run.current) setBusy(false)
+    }
   }
+  const cancelAi = () => { run.current++; setBusy(false) }
   const regenerate = () => update((s) => {
     const variant = s.variant + 1
     return { ...s, variant, history: [generate(s.ctx, variant)], current: 0 }
@@ -66,6 +78,7 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-[72rem] px-4 pb-24 sm:px-8">
+        {busy && <AiProgress name={aiName(ai)} onCancel={cancelAi} />}
         {aiOpen && <AiPanel ai={ai} setAi={setAi} onClose={() => setAiOpen(false)} />}
 
         {state.step === 'input' && (

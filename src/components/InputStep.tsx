@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, FileUp, Plus, RotateCcw, Sparkles, Trash2, Wand2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowRight, ChevronDown, FileUp, Plus, RotateCcw, Sparkles, Trash2, Wand2 } from 'lucide-react'
 import { aiName, aiReady as isReady, type AiSettings } from '../ai'
 import { RESOURCES } from '../library'
 import { readOldPlan } from '../parse'
-import { contextFrom, mergeEdit, SAMPLE_PLAN } from '../sample'
+import { contextFrom, isSample, mergeEdit, SAMPLES } from '../sample'
 import type { Store } from '../store'
 import type { Context } from '../types'
 import { Field } from './ui'
@@ -42,6 +42,8 @@ export function InputStep({ store, ai, onConvert, busy, error }: {
     setCode(''); setText('')
   }
   const aiReady = isReady(ai)
+  const errorRef = useRef<HTMLParagraphElement>(null)
+  useEffect(() => { if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, [error])
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
@@ -52,7 +54,14 @@ export function InputStep({ store, ai, onConvert, busy, error }: {
             <p className="text-[0.9375rem] text-ink-3">วางแผนแบบบรรยายที่มีอยู่ ระบบจะอ่านหัวข้อ ตัวชี้วัด เวลา และขั้นตอนเอง</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button className="btn btn-quiet btn-sm" onClick={() => loadPlan(SAMPLE_PLAN)}><RotateCcw size={15} aria-hidden />ตัวอย่าง</button>
+            <label className="btn btn-quiet btn-sm relative cursor-pointer">
+              <RotateCcw size={15} aria-hidden />ตัวอย่าง<ChevronDown size={14} aria-hidden />
+              <select aria-label="เปิดแผนตัวอย่าง" className="absolute inset-0 cursor-pointer opacity-0" value=""
+                onChange={(e) => { const x = SAMPLES.find((y) => y.id === e.target.value); if (x) loadPlan(x.text) }}>
+                <option value="" disabled>เลือกแผนตัวอย่าง</option>
+                {SAMPLES.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+              </select>
+            </label>
             <label className="btn btn-quiet btn-sm cursor-pointer">
               <FileUp size={15} aria-hidden />เปิดไฟล์ .txt
               <input id="plan-file" type="file" accept=".txt,text/plain" className="sr-only" onChange={async (e) => { const f = e.target.files?.[0]; if (f) loadPlan(await f.text()); e.target.value = '' }} />
@@ -130,7 +139,7 @@ export function InputStep({ store, ai, onConvert, busy, error }: {
               <input id="ind-text" className="field min-w-[10rem] flex-1" placeholder="ข้อความตัวชี้วัด" value={text} onChange={(e) => setText(e.target.value)} aria-label="ข้อความตัวชี้วัด" />
               <button className="btn btn-quiet btn-sm" disabled={!text.trim()}><Plus size={15} aria-hidden />เพิ่ม</button>
             </form>
-            {state.oldPlan === SAMPLE_PLAN && <p className="mt-1.5 text-[0.8125rem] text-ink-3">แผนตัวอย่างและรหัสตัวชี้วัดเป็นข้อมูลสมมติ ตรวจรหัสกับหลักสูตรสถานศึกษาก่อนใช้จริง</p>}
+            {isSample(state.oldPlan) && <p className="mt-1.5 text-[0.8125rem] text-ink-3">แผนตัวอย่างและรหัสตัวชี้วัดเป็นข้อมูลสมมติ ตรวจรหัสกับหลักสูตรสถานศึกษาก่อนใช้จริง</p>}
           </div>
         </div>
 
@@ -142,7 +151,7 @@ export function InputStep({ store, ai, onConvert, busy, error }: {
             <Sparkles size={17} aria-hidden />{busy ? 'AI กำลังเขียนแผน…' : aiReady ? `ให้ ${aiName(ai)} เขียนแผนเต็ม` : 'ให้ AI เขียนแผนเต็ม'}
           </button>
           {!aiReady && <p className="text-center text-[0.8125rem] text-ink-3">AI เป็นตัวเลือกเสริม เลือกได้ทั้ง OpenAI, Claude, Gemini หรือเจ้าอื่น ที่ปุ่ม “AI” มุมขวาบน</p>}
-          {error && <p className="rounded-lg bg-pen-soft px-3 py-2 text-[0.9375rem] text-pen" role="alert">{error}</p>}
+          {error && <p ref={errorRef} className="rounded-lg bg-pen-soft px-3 py-2 text-[0.9375rem] text-pen" role="alert"><span className="font-semibold">AI เขียนแผนไม่สำเร็จ: </span>{error}</p>}
         </div>
       </section>
     </div>

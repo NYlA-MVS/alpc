@@ -14,11 +14,11 @@ https://nyla-mvs.github.io/alpc/ (deployed from `main` by `.github/workflows/pag
 ```bash
 npm install
 npm run dev     # http://localhost:5173
-npm test        # parser, engine and provider tests (28)
+npm test        # parser, engine and provider tests (30)
 npm run build   # dist/index.html (single file) and dist/artifact.html
 ```
 
-The app opens on a sample lecture plan (Grade 6 science, the solar system). The sample plan and its indicator codes are synthetic.
+The app opens on a sample lecture plan (Grade 6 science, the solar system). The “ตัวอย่าง” menu also has four ม.6 plans (math, Thai, social studies, English) in `samples/`. All sample plans and their indicator codes are synthetic.
 
 ## How it works
 

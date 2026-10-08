@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { aiReady, EMPTY_AI, listModels, loadAi, writeWithAi, type AiSettings } from './ai'
+import { aiReady, EMPTY_AI, listModels, loadAi, toPlan, writeWithAi, type AiSettings } from './ai'
 import { validate } from './engine'
 import { contextFrom, mergeEdit, SAMPLE_PLAN } from './sample'
 
@@ -167,6 +167,15 @@ describe('OpenAI-compatible services', () => {
     expect(call(f, 0).headers.get('authorization')).toBeNull()
     expect(call(f, 0).body.response_format).toEqual({ type: 'json_object' })
     expect(call(f, 1).body.response_format).toBeUndefined()
+  })
+})
+
+describe('reading the reply', () => {
+  it('finds the plan inside surrounding text or one level down', () => {
+    const wrapped = `นี่คือแผนครับ\n${JSON.stringify(planJson())}\nหวังว่าจะเป็นประโยชน์`
+    expect(toPlan(ctx, wrapped).stages).toHaveLength(4)
+    expect(toPlan(ctx, JSON.stringify({ plan: planJson() })).stages).toHaveLength(4)
+    expect(() => toPlan(ctx, 'ขออภัย ไม่สามารถทำได้')).toThrow('อ่านไม่ได้')
   })
 })
 
