@@ -56,7 +56,8 @@ export function readOldPlan(text: string): OldPlanReading {
   })
 
   const stepTotal = steps.reduce((a, s) => a + s.minutes, 0)
+  const foundMinutes = minutes > 0 || stepTotal > 0
   if (!minutes) minutes = stepTotal || 60
   const talkMinutes = steps.filter((s) => s.teacherTalk).reduce((a, s) => a + s.minutes, 0)
-  return { topic, subject, grade, indicators, minutes, steps, talkMinutes, activeMinutes: Math.max(0, (stepTotal || minutes) - talkMinutes) }
+  return { topic, subject, grade, indicators, minutes, foundMinutes, steps, talkMinutes, activeMinutes: Math.max(0, (stepTotal || minutes) - talkMinutes) }
 }

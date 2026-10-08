@@ -55,7 +55,8 @@ export function downloadWord(plan: Plan) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `แผน-active-learning-${plan.context.topic || 'บทเรียน'}-v${plan.version}.doc`
+  const topic = (plan.context.topic || 'บทเรียน').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 60)
+  a.download = `แผน-active-learning-${topic}-v${plan.version}.doc`
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

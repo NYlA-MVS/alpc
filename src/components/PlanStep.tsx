@@ -44,13 +44,14 @@ function StageCard({ s, index, plan, onSwap }: { s: Stage; index: number; plan: 
   )
 }
 
-export function PlanStep({ store, onRegenerate }: { store: Store; onRegenerate: () => void }) {
+export function PlanStep({ store, onRegenerate, onRebuild }: { store: Store; onRegenerate: () => void; onRebuild: () => void }) {
   const { state, update } = store
   const plan = currentPlan(state)
   const issues = validate(plan)
   const [tab, setTab] = useState<'objectives' | 'worksheet' | 'rubric'>('rubric')
   const [copied, setCopied] = useState(false)
   const errors = issues.filter((i) => i.level === 'error').length
+  const stale = JSON.stringify(plan.context) !== JSON.stringify(state.ctx)
 
   const setPlan = (p: Plan) => update((s) => ({ ...s, history: s.history.map((h, i) => (i === s.current ? p : h)) }))
   const copy = async () => {
@@ -73,6 +74,13 @@ export function PlanStep({ store, onRegenerate }: { store: Store; onRegenerate: 
           <button className="btn btn-board btn-sm" onClick={() => downloadWord(plan)}><Download size={15} aria-hidden />ดาวน์โหลด Word</button>
         </div>
       </div>
+
+      {stale && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1rem] bg-pen-soft px-5 py-4" role="status">
+          <p className="text-pen">ข้อมูลห้องเรียนหรือแผนเดิมเปลี่ยนไปหลังสร้างแผนนี้ แผนด้านล่างยังใช้ข้อมูลเดิม</p>
+          <button className="btn btn-board btn-sm" onClick={onRebuild}><RefreshCw size={15} aria-hidden />สร้างใหม่ด้วยข้อมูลล่าสุด</button>
+        </div>
+      )}
 
       {state.history.length > 1 && (
         <div className="flex flex-wrap items-center gap-2">

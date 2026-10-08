@@ -84,6 +84,7 @@ export interface OldPlanReading {
   steps: { text: string; minutes: number; teacherTalk: boolean }[]
   talkMinutes: number
   activeMinutes: number
+  foundMinutes: boolean // the period length was stated in the plan, not guessed
 }
 
 export type Rule = 'time' | 'stage-indicator' | 'coverage' | 'rubric' | 'resources' | 'fit' | 'talk'

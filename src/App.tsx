@@ -95,7 +95,7 @@ export default function App() {
         </nav>
 
         {state.step === 'input' && <InputStep store={store} ai={ai} onConvert={convert} busy={busy} error={error} />}
-        {state.step === 'plan' && <PlanStep store={store} onRegenerate={regenerate} />}
+        {state.step === 'plan' && <PlanStep store={store} onRegenerate={regenerate} onRebuild={() => convert('library')} />}
         {state.step === 'after' && <AfterStep key={`${state.current}-${plan.version}`} store={store} />}
       </main>
 

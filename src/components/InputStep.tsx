@@ -1,12 +1,25 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, FileUp, Plus, RotateCcw, Sparkles, Trash2, Wand2 } from 'lucide-react'
 import type { AiSettings } from '../ai'
 import { RESOURCES } from '../library'
 import { readOldPlan } from '../parse'
-import { contextFrom, SAMPLE_PLAN } from '../sample'
+import { contextFrom, mergeEdit, SAMPLE_PLAN } from '../sample'
 import type { Store } from '../store'
 import type { Context } from '../types'
 import { Field } from './ui'
+
+// Lets the teacher type freely; the value is clamped only when they leave the field.
+function NumberInput({ id, value, min, max, fallback, onCommit }: { id: string; value: number; min: number; max: number; fallback: number; onCommit: (n: number) => void }) {
+  const [draft, setDraft] = useState(String(value))
+  useEffect(() => setDraft(String(value)), [value])
+  const commit = () => {
+    const n = Math.round(Number(draft))
+    const next = Number.isFinite(n) && draft.trim() !== '' ? Math.max(min, Math.min(max, n)) : fallback
+    setDraft(String(next))
+    if (next !== value) onCommit(next)
+  }
+  return <input id={id} inputMode="numeric" className="field num" value={draft} onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, ''))} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && commit()} />
+}
 
 export function InputStep({ store, ai, onConvert, busy, error }: {
   store: Store; ai: AiSettings; busy: boolean; error: string
@@ -19,7 +32,10 @@ export function InputStep({ store, ai, onConvert, busy, error }: {
   const [text, setText] = useState('')
   const setCtx = (patch: Partial<Context>) => update((s) => ({ ...s, ctx: { ...s.ctx, ...patch } }))
 
-  const setPlanText = (t: string) => update((s) => ({ ...s, oldPlan: t, ctx: contextFrom(t, { ...s.ctx, indicators: [] , topic: '', subject: '', grade: '' }) }))
+  // A new plan (sample or file) replaces what was read before; editing the text keeps what the teacher typed
+  // in the form unless the text now says something else.
+  const loadPlan = (t: string) => update((s) => ({ ...s, oldPlan: t, ctx: contextFrom(t, { students: s.ctx.students, resources: s.ctx.resources }) }))
+  const editPlan = (t: string) => update((s) => ({ ...s, oldPlan: t, ctx: mergeEdit(s.oldPlan, t, s.ctx) }))
   const addIndicator = () => {
     if (!text.trim()) return
     setCtx({ indicators: [...ctx.indicators, { code: code.trim(), text: text.trim() }] })
@@ -36,10 +52,10 @@ export function InputStep({ store, ai, onConvert, busy, error }: {
             <p className="text-[0.9375rem] text-ink-3">วางแผนแบบบรรยายที่มีอยู่ ระบบจะอ่านหัวข้อ ตัวชี้วัด เวลา และขั้นตอนเอง</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button className="btn btn-quiet btn-sm" onClick={() => setPlanText(SAMPLE_PLAN)}><RotateCcw size={15} aria-hidden />ตัวอย่าง</button>
+            <button className="btn btn-quiet btn-sm" onClick={() => loadPlan(SAMPLE_PLAN)}><RotateCcw size={15} aria-hidden />ตัวอย่าง</button>
             <label className="btn btn-quiet btn-sm cursor-pointer">
               <FileUp size={15} aria-hidden />เปิดไฟล์ .txt
-              <input id="plan-file" type="file" accept=".txt,text/plain" className="sr-only" onChange={async (e) => { const f = e.target.files?.[0]; if (f) setPlanText(await f.text()); e.target.value = '' }} />
+              <input id="plan-file" type="file" accept=".txt,text/plain" className="sr-only" onChange={async (e) => { const f = e.target.files?.[0]; if (f) loadPlan(await f.text()); e.target.value = '' }} />
             </label>
           </div>
         </div>
@@ -47,7 +63,7 @@ export function InputStep({ store, ai, onConvert, busy, error }: {
           <textarea
             id="old-plan" aria-label="แผนการสอนเดิม"
             className="doc block h-[26rem] w-full resize-y rounded-[0.8rem] bg-transparent px-5 py-4 focus:outline-none focus:ring-2 focus:ring-board"
-            value={state.oldPlan} onChange={(e) => setPlanText(e.target.value)}
+            value={state.oldPlan} onChange={(e) => editPlan(e.target.value)}
             placeholder="วางแผนการจัดการเรียนรู้เดิมที่นี่ เช่น เรื่อง… เวลา 1 ชั่วโมง, ตัวชี้วัด, ขั้นนำ (5 นาที) 1. ครู…"
           />
         </div>
@@ -75,8 +91,8 @@ export function InputStep({ store, ai, onConvert, busy, error }: {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="กลุ่มสาระ / วิชา" htmlFor="subject"><input id="subject" className="field" value={ctx.subject} onChange={(e) => setCtx({ subject: e.target.value })} /></Field>
             <Field label="ชั้น" htmlFor="grade"><input id="grade" className="field" value={ctx.grade} onChange={(e) => setCtx({ grade: e.target.value })} placeholder="เช่น ป.6" /></Field>
-            <Field label="เวลาคาบ (นาที)" htmlFor="minutes"><input id="minutes" type="number" min={20} max={180} step={5} className="field num" value={ctx.minutes} onChange={(e) => setCtx({ minutes: Math.max(20, Math.min(180, Number(e.target.value) || 60)) })} /></Field>
-            <Field label="จำนวนนักเรียน" htmlFor="students"><input id="students" type="number" min={1} max={80} className="field num" value={ctx.students} onChange={(e) => setCtx({ students: Math.max(1, Math.min(80, Number(e.target.value) || 30)) })} /></Field>
+            <Field label="เวลาคาบ (นาที)" htmlFor="minutes" hint="20–180 นาที"><NumberInput id="minutes" value={ctx.minutes} min={20} max={180} fallback={60} onCommit={(minutes) => setCtx({ minutes })} /></Field>
+            <Field label="จำนวนนักเรียน" htmlFor="students" hint="1–80 คน"><NumberInput id="students" value={ctx.students} min={1} max={80} fallback={30} onCommit={(students) => setCtx({ students })} /></Field>
           </div>
 
           <fieldset>

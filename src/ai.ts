@@ -20,15 +20,22 @@ export function saveAi(s: AiSettings) {
 }
 
 async function call(path: string, key: string, body?: unknown) {
-  const res = await fetch(`https://api.openai.com/v1/${path}`, {
-    method: body ? 'POST' : 'GET',
-    headers: { Authorization: `Bearer ${key}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
-    body: body ? JSON.stringify(body) : undefined,
-  })
+  let res: Response
+  try {
+    res = await fetch(`https://api.openai.com/v1/${path}`, {
+      method: body ? 'POST' : 'GET',
+      headers: { Authorization: `Bearer ${key}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    })
+  } catch {
+    throw new Error('เชื่อมต่อ OpenAI ไม่ได้ ตรวจอินเทอร์เน็ต หรือหน้านี้อาจถูกจำกัดการเชื่อมต่อภายนอก')
+  }
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
     const msg = (data as { error?: { message?: string } }).error?.message ?? res.statusText
-    throw new Error(res.status === 401 ? 'API key ไม่ถูกต้อง หรือถูกยกเลิกแล้ว' : `OpenAI ตอบกลับว่า: ${msg}`)
+    if (res.status === 401) throw new Error('API key ไม่ถูกต้อง หรือถูกยกเลิกแล้ว')
+    if (res.status === 429) throw new Error('บัญชี OpenAI ถึงขีดจำกัดการใช้งานหรือเครดิตหมด')
+    throw new Error(`OpenAI ตอบกลับว่า: ${msg}`)
   }
   return data
 }
@@ -36,7 +43,10 @@ async function call(path: string, key: string, body?: unknown) {
 // Model names change often, so the list comes from the account instead of being hard-coded.
 export async function listModels(key: string): Promise<string[]> {
   const data = (await call('models', key)) as { data: { id: string }[] }
-  return data.data.map((m) => m.id).filter((id) => /^(gpt|o\d|chatgpt)/.test(id)).sort()
+  return data.data
+    .map((m) => m.id)
+    .filter((id) => /^(gpt|o\d)/.test(id) && !/(audio|realtime|tts|transcribe|image|search|embedding|moderation|instruct|codex)/.test(id))
+    .sort()
 }
 
 const PHASE_IDS = PHASES.map((p) => p.id)
@@ -103,15 +113,17 @@ export async function writeWithAi(ctx: Context, oldPlan: string, s: AiSettings):
 
   const msg = data.choices?.[0]?.message
   if (!msg?.content) throw new Error(msg?.refusal ? `AI ปฏิเสธคำขอ: ${msg.refusal}` : 'AI ไม่ได้ส่งแผนกลับมา')
-  const out = JSON.parse(msg.content) as {
+  let out: {
     stages: Omit<Stage, 'activityId'>[]; objectives: Plan['objectives']; worksheet: string[]; rubric: { indicator: string; levels: string[] }[]
   }
+  try { out = JSON.parse(msg.content) } catch { throw new Error('AI ส่งแผนกลับมาในรูปแบบที่อ่านไม่ได้') }
+  if (!Array.isArray(out.stages) || !out.stages.length) throw new Error('AI ไม่ได้ส่งขั้นกิจกรรมกลับมา')
   const stages: Stage[] = out.stages.map((x) => ({
     ...x, phase: x.phase as Phase, activityId: 'ai', minutes: Math.max(0, Math.round(x.minutes)), talkShare: Math.min(1, Math.max(0, x.talkShare)),
   }))
-  const rows: RubricRow[] = out.rubric.length
+  const rows: RubricRow[] = out.rubric?.length
     ? out.rubric.map((r) => ({ indicator: r.indicator, levels: [r.levels[0] ?? '', r.levels[1] ?? '', r.levels[2] ?? '', r.levels[3] ?? ''] }))
     : defaultRubric(ctx)
   const plan = assemble(ctx, stages, 1, 'ai', [])
-  return { ...plan, objectives: out.objectives, worksheet: out.worksheet, rubric: rows }
+  return { ...plan, objectives: out.objectives ?? plan.objectives, worksheet: out.worksheet?.length ? out.worksheet : plan.worksheet, rubric: rows }
 }

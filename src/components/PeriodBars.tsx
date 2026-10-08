@@ -19,12 +19,16 @@ export function PeriodBars({ oldPlan, plan }: { oldPlan: string; plan: Plan }) {
           <div>
             <div className="mb-1.5 flex items-baseline justify-between gap-3 text-[0.875rem]">
               <span className="text-on-board-2">แผนเดิม</span>
-              <span className="num text-on-board-2">ครูพูด {before.talkMinutes} นาที จาก {beforeTotal}</span>
+              {before.steps.length > 0 && <span className="num text-on-board-2">ครูพูด {before.talkMinutes} นาที จาก {beforeTotal}</span>}
             </div>
-            <div className="flex h-10 overflow-hidden rounded-lg" role="img" aria-label={`แผนเดิม ครูพูด ${before.talkMinutes} นาที นักเรียนลงมือ ${before.activeMinutes} นาที`}>
-              <span className="bar-in bg-talk" style={{ width: pct(before.talkMinutes, beforeTotal) }} />
-              <span className="bar-in bg-chalk" style={{ width: pct(before.activeMinutes, beforeTotal), animationDelay: '120ms' }} />
-            </div>
+            {before.steps.length ? (
+              <div className="flex h-10 overflow-hidden rounded-lg" role="img" aria-label={`แผนเดิม ครูพูด ${before.talkMinutes} นาที นักเรียนลงมือ ${before.activeMinutes} นาที`}>
+                <span className="bar-in bg-talk" style={{ width: pct(before.talkMinutes, beforeTotal) }} />
+                <span className="bar-in bg-chalk" style={{ width: pct(before.activeMinutes, beforeTotal), animationDelay: '120ms' }} />
+              </div>
+            ) : (
+              <p className="flex h-10 items-center rounded-lg border border-dashed border-on-board/40 px-3 text-[0.875rem] text-on-board-2">อ่านขั้นตอนของแผนเดิมไม่ได้ จึงเทียบไม่ได้ ใส่ขั้นตอนแบบ “1. ครู… (10 นาที)” เพื่อเทียบ</p>
+            )}
           </div>
           <div>
             <div className="mb-1.5 flex items-baseline justify-between gap-3 text-[0.875rem]">
@@ -54,7 +58,7 @@ export function PeriodBars({ oldPlan, plan }: { oldPlan: string; plan: Plan }) {
         <div className="border-t border-on-board/20 pt-5 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
           <p className="text-[0.875rem] text-on-board-2">นักเรียนได้ลงมือ</p>
           <p className="font-[family-name:var(--font-display)] text-[3.25rem] font-semibold leading-none text-chalk num">{after.active}<span className="ml-1 text-[1.25rem] text-on-board"> นาที</span></p>
-          <p className="mt-2 text-[0.875rem] text-on-board-2">จากเดิม {before.activeMinutes} นาที · เวลาโดยประมาณจากบทบาทครูในแต่ละขั้น</p>
+          <p className="mt-2 text-[0.875rem] text-on-board-2">{before.steps.length ? `จากเดิม ${before.activeMinutes} นาที · ` : ''}เวลาโดยประมาณจากบทบาทครูในแต่ละขั้น</p>
         </div>
       </div>
     </section>
