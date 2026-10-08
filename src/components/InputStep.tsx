@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, FileUp, Plus, RotateCcw, Sparkles, Trash2, Wand2 } from 'lucide-react'
-import type { AiSettings } from '../ai'
+import { aiName, aiReady as isReady, type AiSettings } from '../ai'
 import { RESOURCES } from '../library'
 import { readOldPlan } from '../parse'
 import { contextFrom, mergeEdit, SAMPLE_PLAN } from '../sample'
@@ -41,7 +41,7 @@ export function InputStep({ store, ai, onConvert, busy, error }: {
     setCtx({ indicators: [...ctx.indicators, { code: code.trim(), text: text.trim() }] })
     setCode(''); setText('')
   }
-  const aiReady = !!ai.apiKey && !!ai.model
+  const aiReady = isReady(ai)
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
@@ -138,10 +138,10 @@ export function InputStep({ store, ai, onConvert, busy, error }: {
           <button className="btn btn-board w-full" onClick={() => onConvert('library')} disabled={busy}>
             <Wand2 size={18} aria-hidden />แปลงเป็นแผน Active Learning<ArrowRight size={18} aria-hidden />
           </button>
-          <button className="btn btn-quiet w-full" onClick={() => onConvert('ai')} disabled={busy || !aiReady} title={aiReady ? undefined : 'ใส่ OpenAI API key และเลือกโมเดลที่ปุ่ม AI ด้านบนก่อน'}>
-            <Sparkles size={17} aria-hidden />{busy ? 'AI กำลังเขียนแผน…' : 'ให้ AI เขียนแผนเต็ม'}
+          <button className="btn btn-quiet w-full" onClick={() => onConvert('ai')} disabled={busy || !aiReady} title={aiReady ? undefined : 'ตั้งค่าผู้ให้บริการ AI ที่ปุ่ม AI ด้านบนก่อน'}>
+            <Sparkles size={17} aria-hidden />{busy ? 'AI กำลังเขียนแผน…' : aiReady ? `ให้ ${aiName(ai)} เขียนแผนเต็ม` : 'ให้ AI เขียนแผนเต็ม'}
           </button>
-          {!aiReady && <p className="text-center text-[0.8125rem] text-ink-3">AI เป็นตัวเลือกเสริม ใส่ OpenAI API key ของคุณที่ปุ่ม “AI” มุมขวาบน</p>}
+          {!aiReady && <p className="text-center text-[0.8125rem] text-ink-3">AI เป็นตัวเลือกเสริม เลือกได้ทั้ง OpenAI, Claude, Gemini หรือเจ้าอื่น ที่ปุ่ม “AI” มุมขวาบน</p>}
           {error && <p className="rounded-lg bg-pen-soft px-3 py-2 text-[0.9375rem] text-pen" role="alert">{error}</p>}
         </div>
       </section>

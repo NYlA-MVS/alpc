@@ -14,7 +14,7 @@ https://nyla-mvs.github.io/alpc/ (deployed from `main` by `.github/workflows/pag
 ```bash
 npm install
 npm run dev     # http://localhost:5173
-npm test        # parser, engine and AI-path tests (19)
+npm test        # parser, engine and provider tests (28)
 npm run build   # dist/index.html (single file) and dist/artifact.html
 ```
 
@@ -25,7 +25,14 @@ The app opens on a sample lecture plan (Grade 6 science, the solar system). The 
 1. **แผนเดิมและห้องเรียน.** Paste or open the old plan (.txt). `src/parse.ts` reads the topic, subject, grade, period length, indicator codes and steps, splits stage minutes across steps, and marks each step as teacher talk or student activity. The teacher confirms the class size and what the room has (projector, internet, student devices, space to move, printing).
 2. **แผนใหม่.** Two ways to write it:
    - **Activity library** (`src/library.ts`, 18 activities, no key needed): `src/engine.ts` splits the period into ขั้นนำ / ขั้นสอน / ขั้นฝึก / ขั้นสรุป, picks the activity that fits each stage's minutes and the room's resources, and ties stages to indicators. Any stage can be swapped for another activity of the same stage.
-   - **OpenAI** (optional): the teacher enters their own API key and picks a model listed from their account. The key stays in the browser and is sent only to api.openai.com. The AI returns JSON in a strict schema.
+   - **AI** (optional), with the teacher's own key, called straight from the browser. Keys stay in the browser and go only to the chosen provider. Model lists come from the teacher's account, so no model names go stale.
+     | Provider | How the JSON is enforced |
+     |---|---|
+     | OpenAI | strict JSON schema (`response_format`) |
+     | Claude (Anthropic) | official `@anthropic-ai/sdk` with `dangerouslyAllowBrowser`, `output_config.format` JSON schema; refusal fallbacks and `effort: medium` on models that support them; suggests `claude-opus-5-5` |
+     | Google Gemini | `responseMimeType: application/json` + schema in the prompt |
+     | OpenAI-compatible (Typhoon, OpenRouter, Groq, Ollama, any base URL) | `json_object`, retried without it if the service rejects the option; schema in the prompt |
+     Every reply goes through `toPlan` (tolerates code fences and small slips) and then the same validator as library plans.
    Either way the plan goes through the same validator: total time equals the period, every stage has an indicator, every indicator has an activity and a rubric row, only resources the room has, activity time and group size fit, teacher talk at most half the period.
    The signature view compares one period before and after: minutes of teacher talk vs students doing.
    Export: Word (.doc in the standard Thai lesson-plan layout, TH Sarabun) or copy as text.

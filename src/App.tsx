@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Sparkles } from 'lucide-react'
-import { loadAi, writeWithAi, type AiSettings } from './ai'
+import { aiName, aiReady, loadAi, writeWithAi, type AiSettings } from './ai'
 import { generate } from './engine'
 import { currentPlan, useAppState, type Step } from './store'
 import { AfterStep } from './components/AfterStep'
@@ -37,7 +37,7 @@ export default function App() {
       update((s) => ({ ...s, history: [plan], current: 0, tried: [], variant: 0, step: 'plan' }))
       window.scrollTo({ top: 0 })
     } catch (e) {
-      setError(`${(e as Error).message} ลองอีกครั้ง หรือใช้ “แปลงเป็นแผน Active Learning” จากคลังกิจกรรมแทน`)
+      setError(`${(e as Error).message} ลองอีกครั้ง เปลี่ยนผู้ให้บริการที่ปุ่ม “AI” หรือใช้ “แปลงเป็นแผน Active Learning” จากคลังกิจกรรมแทน`)
     } finally { setBusy(false) }
   }
   const regenerate = () => update((s) => {
@@ -60,7 +60,7 @@ export default function App() {
           </a>
           <button className="btn btn-quiet btn-sm" onClick={() => setAiOpen(!aiOpen)} aria-expanded={aiOpen}>
             <Sparkles size={15} aria-hidden />
-            {ai.apiKey && ai.model ? <span className="max-w-[9rem] truncate">AI: {ai.model}</span> : 'AI'}
+            {aiReady(ai) ? <span className="max-w-[11rem] truncate">AI: {aiName(ai)}</span> : 'AI'}
           </button>
         </div>
       </header>
