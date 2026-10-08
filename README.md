@@ -5,12 +5,16 @@ Turns a Thai lecture-style lesson plan into an active-learning plan that works i
 Idea bank #309 · Track T2 · SDG 4 · estimated score 4/4/4/4 = 16 (Claude estimate, not a result)
 Based on: [Nexora-AI](https://cloud.google.com/blog/products/ai-machine-learning/adk-hackathon-results-winners-and-highlights) (Agent Development Kit Hackathon with Google Cloud 2025 (online), EMEA winner); [Edu.AI](https://cloud.google.com/blog/products/ai-machine-learning/adk-hackathon-results-winners-and-highlights) (Agent Development Kit Hackathon with Google Cloud 2025 (online), Latin America winner)
 
+## Live
+
+https://nyla-mvs.github.io/alpc/ (deployed from `main` by `.github/workflows/pages.yml`)
+
 ## Run it
 
 ```bash
 npm install
 npm run dev     # http://localhost:5173
-npm test        # parser and engine tests
+npm test        # parser, engine and AI-path tests (19)
 npm run build   # dist/index.html (single file) and dist/artifact.html
 ```
 
