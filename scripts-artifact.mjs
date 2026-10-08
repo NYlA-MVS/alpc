@@ -7,9 +7,11 @@ const headEnd = html.lastIndexOf('</head>')
 const head = html.slice(html.indexOf('<head>') + 6, headEnd)
 const bodyStart = html.indexOf('<body>', headEnd) + 6
 const body = html.slice(bodyStart, html.lastIndexOf('</body>'))
-const title = head.match(/<title>[\s\S]*?<\/title>/)[0]
-const links = (head.match(/<link[^>]*>/g) || []).filter((l) => !/rel="icon"/.test(l)).join('\n')
-const styles = (head.match(/<style[\s\S]*?<\/style>/g) || []).join('\n')
-const scripts = (head.match(/<script[\s\S]*?<\/script>/g) || []).join('\n')
+const scriptTags = head.match(/<script[\s\S]*?<\/script>/g) || []
+const rest = scriptTags.reduce((h, t) => h.replace(t, ''), head) // so markup inside JS strings is not picked up below
+const title = rest.match(/<title>[\s\S]*?<\/title>/)[0]
+const links = (rest.match(/<link[^>]*>/g) || []).filter((l) => !/rel="icon"/.test(l)).join('\n')
+const styles = (rest.match(/<style[\s\S]*?<\/style>/g) || []).join('\n')
+const scripts = scriptTags.join('\n')
 writeFileSync('dist/artifact.html', [title, links, styles, body.trim(), scripts].join('\n'))
 console.log('artifact.html', (readFileSync('dist/artifact.html').length / 1024).toFixed(0) + ' KB')
